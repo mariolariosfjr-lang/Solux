@@ -1,7 +1,7 @@
 # Solux
 Desktop Website
 
-Make a structure of these
+Make <b>a structure</b> of these
 
 ```bash
 SoluxDesktop/
@@ -13,8 +13,8 @@ SoluxDesktop/
  desktop/
    svg/
      wallpaper.svg
-   c/
-     engine.c
+   cpp/
+     engine.cpp -- Changed to C++ because C is hard for me.
    javascript/
      terminalCommands.js
      speech.js
@@ -35,4 +35,8 @@ SoluxDesktop/
     python/
      SystemInstallers.py
      ConfigurationTools.py     
+```
+Add some terminal commands in the Solux Terminal App (very close to <b>Ubuntu</b>)
+```bash
+sudo apti install YOUR_APP.solapp
 ```
