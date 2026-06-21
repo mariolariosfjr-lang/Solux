@@ -9,6 +9,7 @@ SoluxDesktop/
    index.html
    signin.html
    signup.html
+   desktop.html
  desktop/
    svg/
      wallpaper.svg
