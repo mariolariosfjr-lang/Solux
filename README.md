@@ -6,7 +6,7 @@ Make a structure of these
 ```bash
 SoluxDesktop/
  startup/
-   startup.html
+   index.html
    signin.html
    signup.html
  desktop/
