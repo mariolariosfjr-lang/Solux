@@ -2,7 +2,7 @@
 Desktop Website
 # Fix things OK
 
-Make <b>a structure</b> of these
+Make <b>a structure</b> of these.
 
 ```bash
 SoluxDesktop/
@@ -35,9 +35,13 @@ SoluxDesktop/
      soluxRemoveLag.js
     python/
      SystemInstallers.py
-     ConfigurationTools.py     
+     ConfigurationTools.py
+     ExeLauncherScript.py
+     SolappLauncherScript.py     
 ```
-Add some terminal commands in the Solux Terminal App (very close to <b>Ubuntu</b>)
+Add some terminal commands in the Solux Terminal App. (very close to <b>Ubuntu</b>.)
 ```bash
 sudo apti install YOUR_APP.solapp
 ```
+
+# Invent fun things
