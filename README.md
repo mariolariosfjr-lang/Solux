@@ -5,7 +5,6 @@ Desktop Website
 Make <b>a structure</b> of these.
 
 ```bash
-SoluxDesktop/
  startup/
    index.html
    signin.html
