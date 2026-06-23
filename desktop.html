@@ -198,6 +198,26 @@
     </div>
 
     <script>
+
+        activateApp(id) {
+    const app = this.apps.find(a => a.id === id);
+    if (!app) return;
+
+    if (!app.running) {
+        app.running = true;
+    }
+
+    this.apps.forEach(a => a.focused = false);
+    app.focused = true;
+    this.mainMenuText.textContent = app.name;
+
+    // Open Terminal window
+    if (id === "terminal") {
+        document.getElementById("terminal-window").style.display = "block";
+    }
+
+    this.renderDash();
+        }
         // --- System Clock Initialization ---
         function updateClassicClock() {
             const clockEl = document.getElementById('classic-clock');
@@ -217,8 +237,8 @@
                 this.apps = [
                     { id: 'terminal', name: 'Terminal', icon: '🐚', running: false, focused: false },
                     { id: 'files', name: 'Nautilus Files', icon: '📁', running: false, focused: false },
-                    { id: 'firefox', name: 'Firefox Web', icon: '🦊', running: false, focused: false },
-                    { id: 'software', name: 'YOUR APP TEXT HERE', icon: '🛍️', running: false, focused: false }
+                    { id: 'firefox', name: 'Solux Browser', icon: '🦊', running: false, focused: false },
+                    { id: 'software', name: 'Solux Desktop', icon: '🛍️', running: false, focused: false }
                 ];
 
                 this.init();
@@ -268,5 +288,59 @@
             classicOS.activateApp('software');
         }, 800);
     </script>
+    <div class="window" id="terminal-window" style="
+display:none;
+position:absolute;
+left:100px;
+top:80px;
+width:700px;
+height:400px;
+background:#0c0c0c;
+color:white;
+font-family:monospace;
+border-radius:8px;
+overflow:hidden;
+box-shadow:0 0 20px black;
+z-index:2000;
+">
+
+    <div class="titlebar" style="
+    height:32px;
+    background:#1f1f1f;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding-left:12px;
+    ">
+        <div>Terminal</div>
+
+        <div class="buttons">
+            <button onclick="document.getElementById('terminal-body').style.display='none'">−</button>
+
+            <button onclick="
+            let w=document.getElementById('terminal-window');
+            w.style.left='0';
+            w.style.top='24px';
+            w.style.width='calc(100vw - 58px)';
+            w.style.height='calc(100vh - 24px)';
+            ">□</button>
+
+            <button onclick="document.getElementById('terminal-window').style.display='none'">✕</button>
+        </div>
+    </div>
+
+    <div id="terminal-body" style="
+    padding:10px;
+    white-space:pre-wrap;
+    ">
+Solux Terminal [Version 1.0]
+
+Welcome to Terminal.
+Type "help" for a list of commands.
+
+C:\>
+    </div>
+
+    </div>
 </body>
 </html>
