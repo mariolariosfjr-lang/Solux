@@ -1,148 +1,129 @@
-class LinuxEngine {
+class WebOSEngine {
     constructor() {
-        // Structured virtual filesystem
+        // Core Microkernel State
+        this.processes = new Map(); // Tracks running applications/processes
+        this.windows = [];          // Ordered array tracking window stacking (Z-Index)
+        this.processIdCounter = 1;
+        this.windowIdCounter = 1;
+
+        // Virtualized Root Filesystem
         this.fs = {
-            "/": {
-                type: "dir",
-                name: "root",
-                content: ["home", "bin"],
-                permissions: "drwxr-xr-x"
-            },
-            "/bin": {
-                type: "dir",
-                name: "bin",
-                content: ["Terminal.app", "TextEditor.app"],
-                permissions: "drwxr-xr-x"
-            },
-            "/bin/Terminal.app": {
-                type: "app",
-                name: "Terminal",
-                icon: "terminal-icon.png",
-                permissions: "-rwxr-xr-x"
-            },
-            "/bin/TextEditor.app": {
-                type: "app",
-                name: "Text Editor",
-                icon: "editor-icon.png",
-                permissions: "-rwxr-xr-x"
-            },
-            "/home": {
-                type: "dir",
-                name: "home",
-                content: ["user"],
-                permissions: "drwxr-xr-x"
-            },
-            "/home/user": {
-                type: "dir",
-                name: "user",
-                content: ["Documents", "Pictures", "README.txt"],
-                permissions: "drwxr-xr-x"
-            },
-            "/home/user/Documents": {
-                type: "dir",
-                name: "Documents",
-                content: [],
-                permissions: "drwxr-xr-x"
-            },
-            "/home/user/Pictures": {
-                type: "dir",
-                name: "Pictures",
-                content: [],
-                permissions: "drwxr-xr-x"
-            },
-            "/home/user/README.txt": {
-                type: "file",
-                name: "README.txt",
-                content: "Welcome to your Web OS GUI!",
-                permissions: "-rw-r--r--"
-            }
-        };
-        
-        this.currentDir = "/home/user";
-    }
-
-    // --- GUI Data API ---
-
-    // Returns structural data for the current directory grid view
-    getDirectoryContents(path = this.currentDir) {
-        const dir = this.fs[path];
-        if (!dir || dir.type !== "dir") return [];
-
-        return dir.content.map(name => {
-            const fullPath = path === "/" ? `/${name}` : `${path}/${name}`;
-            const item = this.fs[fullPath];
-            return {
-                name: name,
-                path: fullPath,
-                type: item.type,
-                icon: item.icon || (item.type === 'dir' ? 'folder-icon.png' : 'file-icon.png')
-            };
-        });
-    }
-
-    // Handles double-clicking an item in your GUI
-    openItem(path) {
-        const item = this.fs[path];
-        if (!item) return { status: "error", message: "Item not found" };
-
-        if (item.type === "dir") {
-            this.currentDir = path;
-            return { 
-                status: "success", 
-                action: "navigate", 
-                data: this.getDirectoryContents(path) 
-            };
-        }
-
-        if (item.type === "file") {
-            return { 
-                status: "success", 
-                action: "open_editor", 
-                name: item.name, 
-                data: item.content 
-            };
-        }
-
-        if (item.type === "app") {
-            return { 
-                status: "success", 
-                action: "launch_app", 
-                name: item.name 
-            };
-        }
-    }
-
-    // Creates a new item via GUI context menu or hotkeys
-    createItem(name, type = "dir") {
-        if (!name) return { status: "error", message: "Invalid name" };
-
-        const newPath = this.currentDir === "/" ? `/${name}` : `${this.currentDir}/${name}`;
-        if (this.fs[newPath]) return { status: "error", message: "Item already exists" };
-
-        this.fs[this.currentDir].content.push(name);
-        this.fs[newPath] = {
-            type: type,
-            name: name,
-            content: type === "dir" ? [] : "",
-            permissions: type === "dir" ? "drwxr-xr-x" : "-rw-r--r--"
+            "/": { type: "dir", name: "root", children: ["system", "users"] },
+            "/system": { type: "dir", name: "system", children: ["apps"] },
+            "/system/apps": { type: "dir", name: "apps", children: ["Settings", "Browser", "Files"] },
+            "/users": { type: "dir", name: "users", children: ["guest"] },
+            "/users/guest": { type: "dir", name: "guest", children: ["Desktop"] },
+            "/users/guest/Desktop": { type: "dir", name: "Desktop", children: [] }
         };
 
-        return { status: "success", data: this.getDirectoryContents() };
+        // Configuration Settings
+        this.registry = {
+            theme: "dark",
+            wallpaper: "default.jpg",
+            language: "en"
+        };
     }
 
-    // Deletes an item from the GUI view
-    deleteItem(name) {
-        const targetPath = this.currentDir === "/" ? `/${name}` : `${this.currentDir}/${name}`;
-        if (!this.fs[targetPath]) return { status: "error", message: "Item not found" };
-
-        // Remove from parent folder array
-        this.fs[this.currentDir].content = this.fs[this.currentDir].content.filter(item => item !== name);
+    // ==========================================
+    // 1. PROCESS & INTER-PROCESS LIFE-CYCLE (IPC)
+    // ==========================================
+    
+    launchProcess(appName, envArgs = {}) {
+        const pid = this.processIdCounter++;
+        const processStructure = {
+            pid: pid,
+            name: appName,
+            status: "running",
+            memoryAllocation: {}, 
+            args: envArgs,
+            launchedAt: Date.now()
+        };
         
-        // Remove object keys (simplified recursively for children if needed)
-        delete this.fs[targetPath];
+        this.processes.set(pid, processStructure);
+        
+        // Auto-allocate a window viewport for UI apps
+        const win = this.createWindow(pid, appName);
+        return { pid, windowId: win.id };
+    }
 
-        return { status: "success", data: this.getDirectoryContents() };
+    killProcess(pid) {
+        if (!this.processes.has(pid)) return false;
+        
+        this.processes.delete(pid);
+        // Clean up any open windows tied to this process
+        this.windows = this.windows.filter(win => win.pid !== pid);
+        return true;
+    }
+
+    // ==========================================
+    // 2. WINDOW MANAGER & LAYER PIPELINE (Z-INDEX)
+    // ==========================================
+
+    createWindow(pid, title) {
+        const winId = this.windowIdCounter++;
+        const newWindow = {
+            id: winId,
+            pid: pid,
+            title: title,
+            dimensions: { x: 100, y: 100, width: 640, height: 480 },
+            isMaximized: false,
+            isMinimized: false
+        };
+
+        this.windows.push(newWindow);
+        this.focusWindow(winId); // Automatically bring new windows to the front
+        return newWindow;
+    }
+
+    focusWindow(winId) {
+        const index = this.windows.findIndex(w => w.id === winId);
+        if (index === -1) return;
+
+        // Pull out of current position and push to the end (top of stack)
+        const targetWindow = this.windows.splice(index, 1)[0];
+        this.windows.push(targetWindow);
+    }
+
+    updateWindowGeometry(winId, updates) {
+        const win = this.windows.find(w => w.id === winId);
+        if (!win) return false;
+
+        if (updates.dimensions) win.dimensions = { ...win.dimensions, ...updates.dimensions };
+        if (updates.isMaximized !== undefined) win.isMaximized = updates.isMaximized;
+        if (updates.isMinimized !== undefined) win.isMinimized = updates.isMinimized;
+        
+        return true;
+    }
+
+    // Returns structural mapping of windows with resolved absolute CSS z-indexes
+    getRenderTree() {
+        return this.windows.map((win, index) => ({
+            ...win,
+            zIndex: 100 + index // Dynamically maps array index directly into DOM Z-Index layers
+        }));
+    }
+
+    // ==========================================
+    // 3. STORAGE & SYSTEM BUS
+    // ==========================================
+
+    saveSystemState() {
+        const payload = {
+            fs: this.fs,
+            registry: this.registry
+        };
+        localStorage.setItem("web_os_state", JSON.stringify(payload));
+    }
+
+    loadSystemState() {
+        const saved = localStorage.getItem("web_os_state");
+        if (!saved) return false;
+        
+        const data = JSON.parse(saved);
+        this.fs = data.fs;
+        this.registry = data.registry;
+        return true;
     }
 }
 
-export default LinuxEngine;
+export default WebOSEngine;
